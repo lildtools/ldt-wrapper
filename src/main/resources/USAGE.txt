@@ -1,0 +1,38 @@
+###########################################################################
+## USAGE:
+##     ldtw [context] [sandbox] [task] <args>
+##
+## context:
+##     docker                 -  docker wrapper to create containers for several sandboxes
+##
+## sandbox:
+##     gradle                 -  sandbox configuration for gradle docker service with openjdk capabilities
+##     mysql                  -  sandbox configuration for mysql database server docker service
+##     ng                     -  sandbox configuration for angular docker service with nodejs capabilities
+##     pgadmin                -  sandbox configuration for pgadmin client docker service
+##     php                    -  sandbox configuration for php docker service with php-fpm capabilities
+##     phpmyadmin             -  sandbox configuration for phpmyadmin client docker service
+##     postgres               -  sandbox configuration for postgres database server docker service
+##     rabbitmq               -  sandbox configuration for rabbitmq docker service
+##
+## task:
+##     backup                 -  make a database sandbox backup
+##     exec                   -  configure and starting the container with sandbox configs to exec commands on it
+##     restore                -  restore the database sandbox backup
+##     start                  -  configure and starting the container with sandbox configs to run development environment
+##
+## args:
+##     -d|--debug             -  enable debug mode for docker-wrapper
+##     -i|--dockerImageTag    -  define runtime docker image tag
+##
+## env:
+##     POSTGRES_USER=postgres
+##     POSTGRES_PASS=p0stgresLw
+##     PGADMIN_USER=root@pgadmin.org
+##     PGADMIN_PASS=pg4dM1nLw
+##     MYSQL_USER=root
+##     MYSQL_PASS=my5qLLw
+##     RABBITMQ_USER=rabbitmq
+##     RABBITMQ_PASS=r4bbitLmq
+##
+##

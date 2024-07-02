@@ -1,0 +1,185 @@
+.gradle-init: &gradle-init
+  - echo gradle-init
+
+.gradle-clean: &gradle-clean
+  - echo gradle-clean
+
+.run_always_with_gradle:
+  image: $gradleImageTag
+  before_script:
+    - *gradle-init
+  after_script:
+    - *gradle-clean
+  only:
+    - merge_requests
+    - develop
+    - stage
+    - master
+
+.run_on_branches_with_gradle:
+  image: $gradleImageTag
+  before_script:
+    - *gradle-init
+  after_script:
+    - *gradle-clean
+  only:
+    - develop
+    - stage
+    - master
+
+.run_on_branches_with_gradle_and_generate_dist:
+  image: $gradleImageTag
+  before_script:
+    - *gradle-init
+  after_script:
+    - *gradle-clean
+  artifacts:
+    name: dist
+    paths:
+      - dist/
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - dist/
+  only:
+    - develop
+    - stage
+    - master
+
+.run_on_master_with_gradle_and_generate_docs:
+  image: $gradleImageTag
+  before_script:
+    - *gradle-init
+  after_script:
+    - *gradle-clean
+  artifacts:
+    name: docs
+    paths:
+      - docs/
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - docs/
+  only:
+    - master
+
+.run_on_master_with_gradle_and_generate_changelog:
+  image: $gradleImageTag
+  before_script:
+    - *gradle-init
+  after_script:
+    - *gradle-clean
+  artifacts:
+    name: docs
+    paths:
+      - docs/
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - docs/
+  only:
+    - master
+
+.run_on_develop_with_gradle:
+  image: $gradleImageTag
+  before_script:
+    - *gradle-init
+  after_script:
+    - *gradle-clean
+  only:
+    - develop
+
+.run_on_stage_with_gradle:
+  image: $gradleImageTag
+  before_script:
+    - *gradle-init
+  after_script:
+    - *gradle-clean
+  only:
+    - stage
+
+.run_on_master_with_gradle:
+  image: $gradleImageTag
+  before_script:
+    - *init-devops-apt
+  only:
+    - master
+
+.run_always_with_gradle_and_configure_mysql:
+  image: $gradleImageTag
+  services:
+    - name: $mysqlImageTag
+      alias: mysql
+  before_script:
+    - *gradle-init
+  after_script:
+    - *gradle-clean
+  only:
+    - merge_requests
+    - develop
+    - stage
+    - master
+
+.run_always_with_gradle_and_configure_postgres:
+  image: $gradleImageTag
+  services:
+    - name: $postgresImageTag
+      alias: postgres
+  before_script:
+    - *gradle-init
+  after_script:
+    - *gradle-clean
+  only:
+    - merge_requests
+    - develop
+    - stage
+    - master
+
+.run_always_with_gradle_and_configure_rabbitmq:
+  image: $gradleImageTag
+  services:
+    - name: $rabbitmqImageTag
+      alias: rabbitmq
+  before_script:
+    - *gradle-init
+  after_script:
+    - *gradle-clean
+  only:
+    - merge_requests
+    - develop
+    - stage
+    - master
+
+.run_always_with_gradle_and_configure_mysql_and_rabbitmq:
+  image: $gradleImageTag
+  services:
+    - name: $mysqlImageTag
+      alias: mysql
+    - name: $rabbitmqImageTag
+      alias: rabbitmq
+  before_script:
+    - *gradle-init
+  after_script:
+    - *gradle-clean
+  only:
+    - merge_requests
+    - develop
+    - stage
+    - master
+
+.run_always_with_gradle_and_configure_postgres_and_rabbitmq:
+  image: $gradleImageTag
+  services:
+    - name: $postgresImageTag
+      alias: postgres
+    - name: $rabbitmqImageTag
+      alias: rabbitmq
+  before_script:
+    - *gradle-init
+  after_script:
+    - *gradle-clean
+  only:
+    - merge_requests
+    - develop
+    - stage
+    - master

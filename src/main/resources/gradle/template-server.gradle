@@ -1,0 +1,140 @@
+def asciidoctorRoot      = "$buildDir/generated-snippets"
+def buildJar             = "$buildDir/libs/${project.name}-${project.version}.jar"
+def changelogBranch      = "master"
+def changelogFile        = "$projectDir/docs/CHANGELOG.md"
+def changelogRoot        = "$projectDir/src/main/resources/templates/changelog"
+def checkstyleRoot       = "$projectDir/src/main/resources/templates/checkstyle/"
+def checkstyleReportFile = "$buildDir/generated/checkstyle/index.html"
+def checkstyleVersion    = "10"
+def distJar              = "${project.name}-${project.version}.jar"
+def distRoot             = "$projectDir/dist/"
+def dockerFile           = "server.jar"
+def javadocRoot          = "$projectDir/docs/latest/html/$project.name/"
+def sonarProjectKey      = "${project.name}"
+def versionProperties    = "$buildDir/resources/main/version.properties"
+
+///////////////////////////////////////////////////////////////////////////
+// project:meta
+
+def printProjectName = tasks.register("printProjectName") {
+  description "Prints the name of the project"
+  doLast {
+    println project.name
+  }
+}
+
+def printProjectVersion = tasks.register("printProjectVersion") {
+  description "Prints the version of the project"
+  doLast {
+    println project.version
+  }
+}
+
+def createProjectVersion = tasks.register("createProjectVersion") {
+  description "Creates the version file under resources"
+  doLast {
+    new File("$versionProperties").withWriter { w ->
+      Properties p = new Properties()
+      p["version.$project.name"] = project.version.toString()
+      p.store w, null
+    }
+  }
+}
+
+createProjectVersion.configure {
+    dependsOn processResources
+}
+
+///////////////////////////////////////////////////////////////////////////
+// project:dist
+
+def cleanDist = tasks.register("cleanDist", Delete) {
+  description "Delete the project dist folder"
+  delete "$distRoot"
+  doLast {
+    mkdir "$distRoot"
+  }
+}
+
+def makeDist = tasks.register("makeDist", Copy) {
+  description "Make project dist folder"
+  into "$distRoot"
+  with copySpec({
+    from "$buildJar"
+    rename "$distJar", "$dockerFile"
+  })
+}
+
+///////////////////////////////////////////////////////////////////////////
+// checkstyle
+
+checkstyle {
+  configDirectory = file("$checkstyleRoot")
+  configFile      = file("$checkstyleRoot/checkstyle.xml")
+  toolVersion     = "$checkstyleVersion"
+}
+
+tasks.withType(Checkstyle) {
+  reports {
+    xml.required        = false
+    html.required       = true
+    html.outputLocation = file("$checkstyleReportFile")
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// sonarqube
+
+sonar {
+  properties {
+    property "sonar.projectKey", "$sonarProjectKey"
+    property "sonar.qualitygate.wait", true 
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////
+// asciidoctor
+
+asciidoctor {
+  inputs.dir file("$asciidoctorRoot")
+  dependsOn test
+}
+
+///////////////////////////////////////////////////////////////////////////
+// javadoc
+
+javadoc {
+  destinationDir = file("$javadocRoot")
+}
+
+///////////////////////////////////////////////////////////////////////////
+// changelog
+
+gitChangelog {
+  prependToFile                 = false;
+  fromRepo                      = file("$projectDir/.");
+  toRef                         = "$changelogBranch";
+  file                          = file("$changelogFile");
+  templateContent               = file("$changelogRoot/changelog.mustache").getText("UTF-8");
+  ignoreCommitsIfMessageMatches = ".*(" +
+    "(CHANGELOG:)|(changelog:)|" +
+    "(CHORE:)|(chore:)|" +
+    "(DEBUG:)|(debug:)|" +
+    "(FIC:)|(fic:)|" +
+    "(IMPR:)|(impr:)|" +
+    "(Merge )|" +
+    "(REFACT:)|(refact:)|" +
+    "(REL:)|(rel:)|" +
+    "(REVERT:)|(revert:)|" +
+    "(WIP -)|(wip -)|(WIP:)|(wip:)|(- )" +
+  ").*";
+}
+
+def changelog = tasks.register("changelog") {
+  description "Generates changelog file"
+  doLast { }
+}
+
+changelog.configure {
+  dependsOn gitChangelog
+}

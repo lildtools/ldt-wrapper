@@ -1,0 +1,65 @@
+.ubuntu-init: &ubuntu-init
+  - apt-get update
+  - apt-get install -y build-essential make
+
+.ubuntu-clean: &ubuntu-clean
+  - apt-get autoremove -y
+
+.run_always_with_ubuntu:
+  image: $ubuntuImageTag
+  before_script:
+    - *ubuntu-init
+  after_script:
+    - *ubuntu-clean
+  only:
+    - merge_requests
+    - develop
+    - stage
+    - master
+
+.run_always_with_ubuntu_and_generate_dist:
+  image: $ubuntuImageTag
+  before_script:
+    - *ubuntu-init
+  after_script:
+    - *ubuntu-clean
+  artifacts:
+    name: dist
+    paths:
+      - dist/
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - dist/
+  only:
+    - merge_requests
+    - develop
+    - stage
+    - master
+
+.run_on_develop_with_ubuntu:
+  image: $ubuntuImageTag
+  before_script:
+    - *ubuntu-init
+  after_script:
+    - *ubuntu-clean
+  only:
+    - develop
+
+.run_on_stage_with_ubuntu:
+  image: $ubuntuImageTag
+  before_script:
+    - *ubuntu-init
+  after_script:
+    - *ubuntu-clean
+  only:
+    - stage
+
+.run_on_master_with_ubuntu:
+  image: $ubuntuImageTag
+  before_script:
+    - *ubuntu-init
+  after_script:
+    - *ubuntu-clean
+  only:
+    - master

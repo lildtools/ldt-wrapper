@@ -1,0 +1,120 @@
+.docker-init: &docker-init
+  - apt-get update
+  - apt-get install -y docker.io
+
+.docker-clean: &docker-clean
+  - docker system prune --all --force
+  - docker volume prune --all --force
+
+.dockerize-login: &dockerize-login
+  - echo ${DOCKER_ACCESS_TOKEN} | docker login --username ${DOCKER_USER} --password-stdin
+
+.dockerize-logout: &dockerize-logout
+  - docker logout
+
+.dockerize-validate: &dockerize-validate
+  - if [ "$projectName"         = "" ]; then echo "[ERROR] 'project.name' is required!" && exit 1; fi
+  - if [ "$projectVersion"      = "" ]; then echo "[ERROR] 'project.version' is required!" && exit 1; fi
+  - if [ "$DOCKER_HUB_URL"      = "" ]; then echo "[ERROR] 'dockerHub.url' is required!" && exit 1; fi
+  - if [ "$DOCKER_HUB_REPO"     = "" ]; then echo "[ERROR] 'dockerHub.repo' is required!" && exit 1; fi
+  - if [ "$DOCKER_ACCESS_TOKEN" = "" ]; then echo "[ERROR] 'dockerHub.access-token' is required!" && exit 1; fi
+  - if [ "$DOCKER_USER"         = "" ]; then echo "[ERROR] 'dockerHub.user' is required!" && exit 1; fi
+
+.dockerize-getImageVersions: &dockerize-getImageVersions
+  - imageVersion=${DOCKER_HUB_URL}/${DOCKER_HUB_REPO}:${projectName}-${projectVersion}
+  - imageLatest=${DOCKER_HUB_URL}/${DOCKER_HUB_REPO}:${projectName}-latest
+
+.dockerize-buildImageVersions: &dockerize-buildImageVersions
+  - docker build -t $imageVersion -t $imageLatest .
+
+.dockerize-pushImageVersions: &dockerize-pushImageVersions
+  - docker push $imageVersion
+  - docker push $imageLatest
+
+.dockerize-pullImageVersions: &dockerize-pullImageVersions
+  - docker pull $imageVersion
+  - docker pull $imageLatest
+
+.dockerize-cleanImageVersions: &dockerize-cleanImageVersions
+  - docker image rm $imageVersion
+  - docker image rm $imageLatest
+
+.dockerize-feature:
+  before_script:
+    - *docker-init
+    - !reference [.git-install, script]
+  script:
+    - *dockerize-validate
+    - projectCommitId=$(echo $(git rev-parse --short HEAD))
+    - if [ "$projectCommitId" = "" ]; then echo "[ERROR] 'project.commitId' is required!" && exit 1; fi
+    - imageCommit=${DOCKER_HUB_URL}/${DOCKER_HUB_REPO}:${projectName}-${projectVersion}_b${projectCommitId}
+    - docker build -t $imageCommit .
+    - *dockerize-login
+    - docker push $imageCommit
+    - *dockerize-logout
+    - docker image rm $imageCommit
+  after_script:
+    - *docker-clean
+
+.dockerize-develop:
+  before_script:
+    - *docker-init
+  script:
+    - *dockerize-validate
+    - *dockerize-getImageVersions
+    - docker build -t ${imageVersion}-SNAPSHOT .
+    - *dockerize-login
+    - docker push ${imageVersion}-SNAPSHOT
+    - *dockerize-logout
+    - docker image rm ${imageVersion}-SNAPSHOT
+  after_script:
+    - *docker-clean
+
+.dockerize-stage:
+  before_script:
+    - *docker-init
+  script:
+    - *dockerize-validate
+    - *dockerize-getImageVersions
+    - docker build -t ${imageVersion}b .
+    - *dockerize-login
+    - docker push ${imageVersion}b
+    - *dockerize-logout
+    - docker image rm ${imageVersion}b
+  after_script:
+    - *docker-clean
+
+.dockerize-master:
+  before_script:
+    - *docker-init
+  script:
+    - *dockerize-validate
+    - *dockerize-getImageVersions
+    - *dockerize-buildImageVersions
+    - *dockerize-login
+    - *dockerize-pushImageVersions
+    - *dockerize-logout
+    - *dockerize-cleanImageVersions
+  after_script:
+    - *docker-clean
+
+.docker-deploy:
+  before_script:
+    - *docker-init
+  script:
+    - *dockerize-validate
+    - *dockerize-getImageVersions
+    - *dockerize-login
+    - *dockerize-pullImageVersions
+    - *dockerize-logout
+    - checkContainerExists=$(echo $(docker container ls | grep ${projectName}))
+    - if [ ! "$checkContainerExists" = "" ]; then docker container stop ${projectName}; fi
+    - if [ ! "$checkContainerExists" = "" ]; then docker container rm ${projectName}; fi
+    - checkNetworkNotExists=$(echo $(docker network ls | grep ${projectName}-net))
+    - if [   "$checkNetworkNotExists" = "" ]; then docker network create ${projectName}-net; fi
+    - docker container create --name ${projectName} --network ${projectName}-net --restart unless-stopped $imageVersion
+    - checkNginxExists=$(echo $(docker network ls | grep nginx))
+    - if [ ! "$checkNginxExists" = "" ]; then docker network connect nginx ${projectName}; fi
+    - docker container start ${projectName}
+  after_script:
+    - *docker-clean

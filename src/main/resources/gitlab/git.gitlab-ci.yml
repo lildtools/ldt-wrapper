@@ -1,0 +1,89 @@
+.git-init: &git-init
+  - apt-get update
+  - apt-get install -y git
+
+.git-clean: &git-clean
+  - apt-get autoremove -y
+
+.git-prevalidate: &git-prevalidate
+  - if [ "$GITLAB_URL"          = "" ]; then GITLAB_URL=gitlab.com; fi
+  - if [ "$GITLAB_USER"         = "" ]; then GITLAB_USER="GitLab CI/CD"; fi
+
+.git-validate: &git-validate
+  - if [ "$projectName"         = "" ]; then echo "[ERROR] 'project.name' is required!" && exit 1; fi
+  - if [ "$projectVersion"      = "" ]; then echo "[ERROR] 'project.version' is required!" && exit 1; fi
+  - if [ "$GITLAB_URL"          = "" ]; then echo "[ERROR] 'gitlab.url' is required!" && exit 1; fi
+  - if [ "$GITLAB_REPO"         = "" ]; then echo "[ERROR] 'gitlab.repo' is required!" && exit 404; fi
+  - if [ "$GITLAB_ACCESS_TOKEN" = "" ]; then echo "[ERROR] 'gitlab.access-token' is required!" && exit 404; fi
+  - if [ "$GITLAB_EMAIL"        = "" ]; then echo "[ERROR] 'gitlab.email' is required!" && exit 1; fi
+  - if [ "$GITLAB_USER"         = "" ]; then echo "[ERROR] 'gitlab.user' is required!" && exit 1; fi
+
+.git-config-global: &git-config-global
+  - git config --global user.email "${GITLAB_EMAIL}"
+  - git config --global user.name "${GITLAB_USER}"
+
+.git-config-remote: &git-config-remote
+  - git remote set-url origin https://oauth2:${GITLAB_ACCESS_TOKEN}@${GITLAB_URL}/${GITLAB_REPO}.git
+
+.git-tag-master: &git-tag-master
+    - git tag -a "${projectVersion}" -m "'${projectVersion}' $(date +%Y-%m-%dT%H:%M:%S)"
+    - git push origin $projectVersion
+
+.git-install:
+  script:
+    - *git-init
+
+.git-flow-release-dev:
+  before_script:
+    - *git-init
+  script:
+    - *git-prevalidate
+    - *git-validate
+    - *git-config-global
+    - *git-config-remote
+    - git checkout -b develop-$CI_COMMIT_SHORT_SHA
+    - echo "git push -o merge_request.create -o merge_request.title="Feature/update" -o merge_request.description="Merge 'develop' into 'featureBranchName' @ $(date +%Y-%m-%dT%H:%M:%S)" -o merge_request.target=featureBranch -o merge_request.merge_when_pipeline_succeeds -o merge_request.remove_source_branch origin develop-$CI_COMMIT_SHORT_SHA
+    - echo "[TODO] if there are feature branches, merge develop into them"
+  after_script:
+    - *git-clean
+
+.git-flow-release-stage:
+  before_script:
+    - *git-init
+  script:
+    - *git-prevalidate
+    - *git-validate
+    - *git-config-global
+    - *git-config-remote
+    - git checkout -b stage-$CI_COMMIT_SHORT_SHA
+    - git push -o merge_request.create -o merge_request.title="Release/v${projectVersion}" -o merge_request.description="Merge 'stage' into 'develop' @ $(date +%Y-%m-%dT%H:%M:%S)" -o merge_request.target=develop -o merge_request.merge_when_pipeline_succeeds -o merge_request.remove_source_branch origin stage-$CI_COMMIT_SHORT_SHA
+  after_script:
+    - *git-clean
+
+.git-flow-release-master:
+  before_script:
+    - *git-init
+  script:
+    - *git-prevalidate
+    - *git-validate
+    - *git-config-global
+    - *git-config-remote
+    - *git-tag-master
+    - git checkout -b master-$CI_COMMIT_SHORT_SHA
+    - git push -o merge_request.create -o merge_request.title="Release/v${projectVersion}" -o merge_request.description="Merge 'master' into 'stage' @ $(date +%Y-%m-%dT%H:%M:%S)" -o merge_request.target=stage -o merge_request.merge_when_pipeline_succeeds -o merge_request.remove_source_branch origin master-$CI_COMMIT_SHORT_SHA
+  after_script:
+    - *git-clean
+
+.git-release-master:
+  before_script:
+    - *git-init
+  script:
+    - *git-prevalidate
+    - *git-validate
+    - *git-config-global
+    - *git-config-remote
+    - *git-tag-master
+    - git checkout -b master-$CI_COMMIT_SHORT_SHA
+    - git push -o merge_request.create -o merge_request.title="Release/v${projectVersion}" -o merge_request.description="Merge 'master' into 'develop' @ $(date +%Y-%m-%dT%H:%M:%S)" -o merge_request.target=develop -o merge_request.merge_when_pipeline_succeeds -o merge_request.remove_source_branch origin master-$CI_COMMIT_SHORT_SHA
+  after_script:
+    - *git-clean

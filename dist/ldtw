@@ -1,0 +1,86 @@
+#!/bin/sh
+
+main() {
+    if [ "$1" = "" ] ||
+        [ "$1" = "-h" ] ||
+        [ "$1" = "--help" ] ||
+        [ "$1" = "-u" ] ||
+        [ "$1" = "--usage" ]; then usage; fi
+    if [ "$1" = "-v" ] ||
+        [ "$1" = "--version" ]; then version; fi
+    if [ "$1" = "--clean" ]; then clean; fi
+    if [ "$1" = "--cache-clear" ]; then cacheClear; fi
+    if [ ! "$1" = "" ]; then run; fi
+}
+usage() {
+    echo "USAGE: ldtw <module> [task] (sandbox)|(args)"
+    exit 0
+}
+version() {
+    echo "ldt-wrapper v1.0.0-SNAPSHOT"
+    exit 0
+}
+clean() {
+    folder=$(realpath $(dirname "$0")/.ldt)
+    rm -rfv $folder
+    exit 0
+}
+cacheClear() {
+    folder=$(realpath $(dirname "$0")/.ldt/cache)
+    rm -rfv $folder
+    exit 0
+}
+run() {
+    _installOrUpdate
+    /bin/bash $ldtScript $*
+}
+_installOrUpdate() {
+    ldtFolder=$(realpath $(dirname "$0")/.ldt)
+    if [ ! -d $ldtFolder ]; then mkdir -p $ldtFolder; fi
+    ldtScript=$(realpath $(dirname "$0")/.ldt/ldt)
+    if [ ! -f "$ldtScript" ]; then
+        setup $ldtFolder
+        exit 0
+    fi
+    if [ "$(command -v bash)" = "" ]; then
+        echo "ERR: ldt requires 'bash' to be installed."
+        exit 1
+    fi
+    echo $ldtScript $*
+
+
+
+
+
+    
+    if [ "$(command -v bash)" = "" ]; then
+        echo "ERR: ldt requires 'bash' to be installed."
+        exit 1
+    fi
+    ldtFolder=$(realpath $(dirname "$0")/.ldt)
+    projects=$(realpath $(dirname "$0")/../projects)
+    mkdir -pv $ldtFolder
+    bin=$ldtFolder/bin
+    mkdir -pv $bin
+    cp -v $projects/ldt/dist/ldt-1.0.0-SNAPSHOT.sh $ldtFolder/ldt
+    cp -v $projects/ldt-compiler/dist/ldt-compiler-1.0.0-SNAPSHOT.sh $bin/ldtc
+    cp -v $projects/ldt-logger/dist/ldt-logger-1.0.0-SNAPSHOT.sh $bin/ldtl
+    chmod -R 700 $bin/
+    lib=$ldtFolder/lib
+    mkdir -pv $lib
+    res=$ldtFolder/res
+    mkdir -pv $res
+    exit 0
+
+    ldtFolder=$(realpath $(dirname "$0")/.ldt)
+    projects=$(realpath $(dirname "$0")/../projects)
+    bin=$ldtFolder/bin
+    cp -v $projects/ldt/dist/ldt-1.0.0-SNAPSHOT.sh $ldtFolder/ldt
+    cp -v $projects/ldt-compiler/dist/ldt-compiler-1.0.0-SNAPSHOT.sh $bin/ldtc
+    cp -v $projects/ldt-logger/dist/ldt-logger-1.0.0-SNAPSHOT.sh $bin/ldtl
+    chmod -R 700 $bin/
+    lib=$ldtFolder/lib
+    res=$ldtFolder/res
+    exit 0
+}
+main $*

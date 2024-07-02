@@ -1,0 +1,157 @@
+# Template file with Make support for GitLab CI/CD yaml file
+# See https://docs.gitlab.com/ee/ci/yaml/gitlab_ci_yaml.html for more about GitLab CI/CD yml file.
+# version:
+#   ldt-devops_0.0.0
+
+### Env #############
+##
+## DOCKER_HUB_URL
+## DOCKER_HUB_REPO
+## DOCKER_USER
+## DOCKER_ACCESS_TOKEN
+## DOCKER_PORT_PUBLISH
+## GITLAB_EMAIL
+## GITLAB_USER
+## GITLAB_ACCESS_TOKEN
+## GITLAB_PROJECT
+## GITLAB_URL
+## GITLAB_PROJECT
+
+### Variables #######
+##
+## debianImageTag
+## ubuntuImageTag
+
+### Scripts #########
+##
+.init-devops-apt: &init-devops-apt
+  - apt-get update
+  - apt-get install -y build-essential docker.io git
+
+.init-devops-apk: &init-devops-apk
+  - apk add -u build-essential docker.io git
+
+### Templates #######
+##
+
+##########
+## Run job at every push on branches or MRs
+##   with ubuntu image and before script initialize the job
+##
+.run_always_with_ubuntu:
+  image: $ubuntuImageTag
+  before_script:
+    - *init-devops-apt
+  only:
+    - merge_requests
+    - develop
+    - stage
+    - master
+
+##########
+## Run job at every push on branches
+##   with ubuntu image and before script initialize the job
+##
+.run_on_branches_with_ubuntu:
+  image: $ubuntuImageTag
+  before_script:
+    - *init-devops-apt
+  only:
+    - develop
+    - stage
+    - master
+
+##########
+## Run job at every push on branches
+##   with ubuntu image and before script initialize the job
+##   and generate artifacts from 'dist' folder
+##
+.run_on_branches_with_ubuntu_and_generate_dist:
+  image: $ubuntuImageTag
+  before_script:
+    - *init-devops-apt
+  artifacts:
+    name: dist
+    paths:
+      - dist/
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - dist/
+  only:
+    - develop
+    - stage
+    - master
+
+##########
+## Run job at every push on master branch
+##   with ubuntu image and before script initialize the job
+##   and generate an artifact from 'docs/latest/html' folder
+##
+.run_on_master_with_ubuntu_and_generate_docs:
+  image: $ubuntuImageTag
+  before_script:
+    - *init-devops-apt
+  artifacts:
+    name: docs
+    paths:
+      - docs/
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - docs/
+  only:
+    - master
+
+##########
+## Run job at every push on master branch
+##   with ubuntu image and before script initialize the job
+##   and generate an artifact from 'docs/changelog.md' folder
+##
+.run_on_master_with_ubuntu_and_generate_changelog:
+  image: $ubuntuImageTag
+  before_script:
+    - *init-devops-apt
+  artifacts:
+    name: docs
+    paths:
+      - docs/
+  cache:
+    key: $CI_COMMIT_REF_NAME
+    paths:
+      - docs/
+  only:
+    - master
+
+##########
+## Run job at every push on develop branch
+##   with ubuntu image and before script initialize the job
+##
+.run_on_develop_with_ubuntu:
+  image: $ubuntuImageTag
+  before_script:
+    - *init-devops-apt
+  only:
+    - develop
+
+##########
+## Run job at every push on stage branch
+##   with ubuntu image and before script initialize the job
+##
+.run_on_stage_with_ubuntu:
+  image: $ubuntuImageTag
+  before_script:
+    - *init-devops-apt
+  only:
+    - stage
+
+##########
+## Run job at every push on master branch
+##   with ubuntu image and before script initialize the job
+##
+.run_on_master_with_ubuntu:
+  image: $ubuntuImageTag
+  before_script:
+    - *init-devops-apt
+  only:
+    - master
